@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador Móvil v6</title>
+    <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4a7c59;
+            --primary-hover: #3a6346;
+            --bg-color: #f9f9f9;
+            --border-color: #e0e0e0;
+            --slot-bg: #ffffff;
+            --sidebar-width: 280px;
+            --danger-color: #d9534f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            box-sizing: border-box;
+            gap: 20px;
+        }
+
+        /* --- CONTENEDORES PRINCIPALES --- */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            /* Scroll suave */
+            scrollbar-width: thin; 
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            height: fit-content;
+            max-height: 100%;
+        }
+
+        /* --- Header y Controles --- */
+        header { margin-bottom: 20px; }
+        h1 { color: var(--primary-color); margin: 0 0 10px 0; font-size: 1.8em; }
+        
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button, .file-upload-btn {
+            padding: 10px 15px; /* Botones más grandes para dedos */
+            border: 1px solid var(--primary-color);
+            background: #fff;
+            color: var(--primary-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            touch-action: manipulation; /* Mejora respuesta táctil */
+        }
+        
+        button:hover, .file-upload-btn:hover { background-color: #f0f0f0; }
+        button.primary { background-color: var(--primary-color); color: #fff; }
+        button.danger { border-color: var(--danger-color); color: var(--danger-color); }
+        #csvInput { display: none; }
+
+        /* --- ESTRUCTURA DE LA SEMANA (NUEVO DISEÑO FLEXIBLE) --- */
+        .week-container {
+            display: flex;
+            flex-wrap: wrap; /* Permite que los días bajen si no caben */
+            gap: 15px;
+        }
+
+        .day-column {
+            flex: 1;
+            min-width: 140px; /* Ancho mínimo para que no se aplaste */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-weight: 800;
+            color: var(--primary-color);
+            background: #e9f5ec;
+            padding: 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        /* --- SLOTS (Huecos) --- */
+        .meal-slot-container {
+            background-color: var(--slot-bg);
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            min-height: 100px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.2s, border-color 0.2s;
+            position: relative;
+        }
+
+        .meal-slot-container.drag-over {
+            background-color: #dcfce7;
+            border-color: var(--primary-color);
+            transform: scale(1.02); /* Pequeño efecto pop */
+        }
+
+        .slot-label {
+            font-size: 0.7em; color: #999; margin-bottom: 6px;
+            text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        /* --- BOTÓN AÑADIR (+) --- */
+        .add-placeholder {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #ddd;
+            border-radius: 4px;
+            min-height: 40px;
+        }
+        .add-placeholder i { font-size: 1.5em; }
+
+        /* --- TARJETA DE COMIDA --- */
+        .meal-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            padding: 10px;
+            cursor: grab;
+            margin-bottom: 8px;
+            position: relative;
+            padding-right: 30px; /* Más espacio para dedo */
+            font-size: 0.95em;
+            touch-action: none; /* Importante para el DragDropTouch */
+        }
+        
+        .meal-card:active { cursor: grabbing; opacity: 0.7; }
+        .meal-name { font-weight: 600; cursor: pointer; word-break: break-word; }
+
+        .delete-card-btn {
+            position: absolute;
+            top: 0; right: 0;
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            color: #ccc; cursor: pointer;
+        }
+        .delete-card-btn:hover { color: var(--danger-color); background: #fff5f5; }
+
+        /* --- SIDEBAR --- */
+        #sidebar-pantry-slot {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #f8f8f8;
+            min-height: 150px;
+            max-height: 50vh; /* Límite de altura en sidebar */
+        }
+        
+        .add-pantry-btn {
+            margin-top: 10px;
+            text-align: center;
+            padding: 12px;
+            border: 2px dashed #aaa;
+            color: #666;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            width: 85%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }}
+
+        .modal-header { font-size: 1.3em; font-weight: bold; margin-bottom: 20px; color: var(--primary-color); }
+        
+        .modal-input {
+            width: 100%; padding: 12px; font-size: 1.1em;
+            border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px;
+            box-sizing: border-box;
+             -webkit-appearance: none; /* Quita estilos feos en iOS */
+        }
+        .modal-input:focus { border-color: var(--primary-color); outline: none; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-actions button { flex: 1; justify-content: center; }
+
+        /* --- ESTILOS MÓVILES (MEDIA QUERIES) --- */
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column; /* Apilar Main y Sidebar */
+                height: auto; /* Permitir scroll en toda la página */
+                padding: 10px;
+            }
+
+            .sidebar {
+                width: 100%; /* Sidebar ocupa todo el ancho */
+                border: none;
+                border-top: 2px solid #eee;
+                order: 2; /* Poner la sidebar al final */
+                padding: 10px 0;
+            }
+
+            .main-content {
+                overflow: visible; /* Quitar scroll interno */
+            }
+
+            .week-container {
+                flex-direction: column; /* Días uno debajo de otro */
+            }
+            
+            .day-column {
+                border: 1px solid #eee;
+                padding: 10px;
+                border-radius: 8px;
+                background: #fff;
+            }
+
+            /* Hacer los botones de control más fáciles de pulsar */
+            .controls button, .controls label {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+        
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="main-content">
+        <header>
+            <h1><i class="fas fa-utensils"></i> Menú Semanal</h1>
+        </header>
+
+        <div class="controls">
+            <label for="csvInput" class="file-upload-btn">
+                <i class="fas fa-file-import"></i> Importar
+            </label>
+            <input type="file" id="csvInput" accept=".csv">
+            <button onclick="downloadTemplate()"><i class="fas fa-download"></i> Plantilla</button>
+            <button class="danger" onclick="clearWeek()"><i class="fas fa-trash-alt"></i> Limpiar</button>
+        </div>
+
+        <div class="week-container">
+            <div class="day-column">
+                <div class="day-header">Lunes</div>
+                <div class="meal-slot-container" id="mon-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="mon-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+
+            <div class="day-column">
+                <div class="day-header">Martes</div>
+                <div class="meal-slot-container" id="tue-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="tue-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+
+            <div class="day-column">
+                <div class="day-header">Miércoles</div>
+                <div class="meal-slot-container" id="wed-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="wed-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+
+            <div class="day-column">
+                <div class="day-header">Jueves</div>
+                <div class="meal-slot-container" id="thu-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="thu-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+
+             <div class="day-column">
+                <div class="day-header">Viernes</div>
+                <div class="meal-slot-container" id="fri-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="fri-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+
+            <div class="day-column">
+                <div class="day-header">Sábado</div>
+                <div class="meal-slot-container" id="sat-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="sat-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+
+            <div class="day-column">
+                <div class="day-header">Domingo</div>
+                <div class="meal-slot-container" id="sun-lunch">
+                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
+                </div>
+                <div class="meal-slot-container" id="sun-dinner">
+                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <h3><i class="fas fa-bookmark"></i> Reserva</h3>
+        <p style="margin:0 0 10px 0; color:#888; font-size:0.9em;">Arrastra aquí para guardar.</p>
+        <div id="sidebar-pantry-slot" class="meal-slot-container">
+            </div>
+        <div class="add-pantry-btn" onclick="openModal(null, 'sidebar-pantry')">
+            <i class="fas fa-plus"></i> Añadir Manual
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="mealModal">
+        <div class="modal-box">
+            <div class="modal-header" id="modalTitle">Editar</div>
+            <input type="text" id="modalInput" class="modal-input" placeholder="Nombre..." autocomplete="off">
+            <div class="modal-actions">
+                <button onclick="closeModal()">Cancelar</button>
+                <button class="primary" onclick="saveFromModal()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ESTADO GLOBAL ---
+        let appState = {
+            planner: {},
+            pantry: []
+        };
+        const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        days.forEach(d => {
+            appState.planner[`${d}-lunch`] = null;
+            appState.planner[`${d}-dinner`] = null;
+        });
+
+        let currentContext = { mode: null, slotId: null, mealIndex: null, mealId: null };
+        const STORAGE_KEY = 'mealPlannerStateV6'; 
+
+        function init() {
+            loadState();
+            setupEventListeners();
+            renderView();
+            const modalInput = document.getElementById('modalInput');
+            if(modalInput) {
+                modalInput.addEventListener('keyup', (e) => { if(e.key === 'Enter') saveFromModal(); });
+            }
+        }
+
+        function loadState() {
+            const savedState = localStorage.getItem(STORAGE_KEY);
+            if (savedState) {
+                try { 
+                    const parsed = JSON.parse(savedState);
+                    appState.planner = { ...appState.planner, ...parsed.planner };
+                    appState.pantry = parsed.pantry || [];
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            renderView();
+        }
+
+        // --- RENDERIZADO ---
+        function renderView() {
+            // Limpieza selectiva
+            document.querySelectorAll('.meal-card, .add-placeholder').forEach(el => el.remove());
+            
+            // 1. Calendario
+            for (const slotId in appState.planner) {
+                const slotEl = document.getElementById(slotId);
+                if (!slotEl) continue;
+
+                const mealData = appState.planner[slotId];
+                if (mealData) {
+                    slotEl.appendChild(createMealCardElement(mealData, slotId));
+                } else {
+                    const addBtn = document.createElement('div');
+                    addBtn.className = 'add-placeholder';
+                    addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                    addBtn.onclick = function() { openModal(null, slotId); };
+                    slotEl.appendChild(addBtn);
+                }
+            }
+
+            // 2. Reserva
+            const pantrySlot = document.getElementById('sidebar-pantry-slot');
+            if (pantrySlot) {
+                appState.pantry.forEach((mealData, index) => {
+                    pantrySlot.appendChild(createMealCardElement(mealData, 'pantry-' + index));
+                });
+            }
+        }
+
+        function createMealCardElement(mealData, sourceSlotId) {
+            const card = document.createElement('div');
+            card.className = 'meal-card';
+            card.setAttribute('draggable', 'true');
+            card.dataset.sourceSlot = sourceSlotId;
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'meal-name';
+            nameEl.textContent = mealData.name;
+            nameEl.onclick = () => openModal(mealData, sourceSlotId);
+            card.appendChild(nameEl);
+
+            const deleteBtn = document.createElement('i');
+            deleteBtn.className = 'fas fa-times delete-card-btn';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteMeal(sourceSlotId);
+            };
+            card.appendChild(deleteBtn);
+            return card;
+        }
+
+        // --- MODAL ---
+        function openModal(mealData, slotId) {
+            const modal = document.getElementById('mealModal');
+            const input = document.getElementById('modalInput');
+            const title = document.getElementById('modalTitle');
+
+            currentContext = { mode: null, slotId: slotId, mealIndex: null, mealId: null };
+
+            if (mealData) {
+                currentContext.mode = 'edit';
+                title.textContent = "Editar";
+                input.value = mealData.name;
+            } else {
+                currentContext.mode = 'add';
+                title.textContent = "Añadir Plato";
+                input.value = '';
+            }
+            
+            if (slotId && slotId.startsWith('pantry-')) {
+                 currentContext.mealIndex = parseInt(slotId.split('-')[1]);
+            }
+
+            modal.style.display = 'flex';
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closeModal() { document.getElementById('mealModal').style.display = 'none'; }
+
+        function saveFromModal() {
+            const input = document.getElementById('modalInput');
+            const newName = input.value.trim();
+            if (!newName) return; 
+
+            if (currentContext.mode === 'add') {
+                const newMeal = { id: 'm_' + Date.now(), name: newName };
+                if (currentContext.slotId === 'sidebar-pantry' || currentContext.slotId === 'sidebar-pantry-slot') {
+                    appState.pantry.push(newMeal);
+                } else {
+                    appState.planner[currentContext.slotId] = newMeal;
+                }
+            } else if (currentContext.mode === 'edit') {
+                if (currentContext.slotId.startsWith('pantry')) {
+                    const idx = currentContext.mealIndex;
+                    if(appState.pantry[idx]) appState.pantry[idx].name = newName;
+                } else {
+                    if(appState.planner[currentContext.slotId]) appState.planner[currentContext.slotId].name = newName;
+                }
+            }
+            saveState();
+            closeModal();
+        }
+
+        // --- GESTIÓN DATOS ---
+        function deleteMeal(sourceSlotId) {
+            if(!confirm("¿Borrar?")) return;
+            if (sourceSlotId.startsWith('pantry')) {
+                appState.pantry.splice(parseInt(sourceSlotId.split('-')[1]), 1);
+            } else {
+                appState.planner[sourceSlotId] = null;
+            }
+            saveState();
+        }
+
+        function clearWeek() {
+            if(confirm("¿Borrar todo el menú de la semana?")) {
+                 for (let slotId in appState.planner) {
+                    appState.planner[slotId] = null;
+                }
+                saveState();
+            }
+        }
+
+        // --- DRAG & DROP (HTML5 + Polyfill) ---
+        function setupEventListeners() {
+            document.getElementById('csvInput').addEventListener('change', handleCSVUpload);
+            // Listeners estándar (el polyfill los traduce a touch automáticamente)
+            document.body.addEventListener('dragstart', handleDragStart);
+            document.body.addEventListener('dragover', handleDragOver);
+            document.body.addEventListener('dragenter', handleDragEnter);
+            document.body.addEventListener('dragleave', handleDragLeave);
+            document.body.addEventListener('drop', handleDrop);
+            
+            // Cerrar modal al tocar fuera
+            document.getElementById('mealModal').addEventListener('click', (e) => {
+               if(e.target.id === 'mealModal') closeModal(); 
+            });
+        }
+
+        let draggedItem = null;
+
+        function handleDragStart(e) {
+            if (!e.target.classList.contains('meal-card')) return;
+            draggedItem = e.target;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', JSON.stringify({ sourceSlot: draggedItem.dataset.sourceSlot }));
+            setTimeout(() => draggedItem.style.opacity = '0.5', 0);
+        }
+
+        function handleDragOver(e) { if (e.target.closest('.meal-slot-container')) e.preventDefault(); }
+        
+        function handleDragEnter(e) { 
+            const slot = e.target.closest('.meal-slot-container');
+            if (slot) { e.preventDefault(); slot.classList.add('drag-over'); }
+        }
+        
+        function handleDragLeave(e) {
+            const slot = e.target.closest('.meal-slot-container');
+            if (slot && !slot.contains(e.relatedTarget)) slot.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+             const targetSlot = e.target.closest('.meal-slot-container');
+             if (!targetSlot) return;
+             e.preventDefault();
+             targetSlot.classList.remove('drag-over');
+             if(draggedItem) draggedItem.style.opacity = '1';
+
+             try {
+                 const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                 const sourceSlotId = data.sourceSlot;
+                 let targetSlotId = targetSlot.id;
+                 if (targetSlotId === 'sidebar-pantry-slot') targetSlotId = 'sidebar-pantry';
+
+                 if (sourceSlotId === targetSlotId) return;
+
+                 let movingMeal = sourceSlotId.startsWith('pantry') 
+                    ? appState.pantry[parseInt(sourceSlotId.split('-')[1])] 
+                    : appState.planner[sourceSlotId];
+                 
+                 if (!movingMeal) return;
+
+                 if (targetSlotId === 'sidebar-pantry') {
+                     appState.pantry.push(movingMeal);
+                 } else {
+                     if (appState.planner[targetSlotId]) appState.pantry.push(appState.planner[targetSlotId]);
+                     appState.planner[targetSlotId] = movingMeal;
+                 }
+
+                 if (sourceSlotId.startsWith('pantry')) {
+                     appState.pantry.splice(parseInt(sourceSlotId.split('-')[1]), 1);
+                 } else {
+                     appState.planner[sourceSlotId] = null;
+                 }
+                 
+                 draggedItem = null;
+                 saveState();
+             } catch(err) { console.error(err); }
+        }
+
+        // --- CSV ---
+        function downloadTemplate() {
+            const csvContent = `lun,comida,Ejemplo Espaguetis\nlun,cena,Ejemplo Ensalada\nreserva,,Pizza de Emergencia`;
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+            link.download = "plantilla_menu.csv";
+            link.click();
+        }
+
+        function handleCSVUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) { parseCSVAndFill(e.target.result); event.target.value = ''; };
+            reader.readAsText(file);
+        }
+
+        function parseCSVAndFill(csvContent) {
+            const lines = csvContent.split('\n');
+            let addedCount = 0;
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const parts = line.split(',');
+                if (parts.length < 3) return;
+                const day = parts[0].trim().toLowerCase();
+                const type = parts[1].trim().toLowerCase();
+                const name = parts[2].trim();
+                const newMeal = { id: 'csv_' + Date.now() + Math.random().toString(36).substr(2, 5), name: name };
+
+                if (day === 'pantry' || day === 'reserva') {
+                    appState.pantry.push(newMeal); addedCount++;
+                } else {
+                    const dayMap = { 'lun': 'mon', 'mar': 'tue', 'mié': 'wed', 'mie': 'wed', 'jue': 'thu', 'vie': 'fri', 'sáb': 'sat', 'sab': 'sat', 'dom': 'sun' };
+                    const typeMap = { 'comida': 'lunch', 'cena': 'dinner' };
+                    const slotId = `${dayMap[day] || day}-${typeMap[type] || type}`;
+                    if (appState.planner.hasOwnProperty(slotId)) {
+                        if(appState.planner[slotId]) appState.pantry.push(appState.planner[slotId]);
+                        appState.planner[slotId] = newMeal;
+                        addedCount++;
+                    }
+                }
+            });
+            if (addedCount > 0) { alert(`Importados ${addedCount} platos.`); saveState(); }
+        }
+
+        init();
+    </script>
+</body>
+</html>
