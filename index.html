@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Planificador V8 - Estable</title>
+    <title>Planificador V9 - Compacto</title>
     <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
     
     <style>
@@ -17,160 +17,101 @@
             --danger-color: #d9534f;
         }
 
-        /* --- CONFIGURACIÓN BASE (ESCRITORIO) --- */
+        /* --- BASE --- */
         html, body {
-            height: 100%; /* Fijo en escritorio para tener scroll interno */
-            margin: 0;
-            overflow: hidden; 
+            height: 100%; margin: 0; overflow: hidden;
         }
-
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: #333;
-            display: flex;
-            box-sizing: border-box;
-            gap: 20px;
-            padding: 20px;
+            background-color: var(--bg-color); color: #333;
+            display: flex; box-sizing: border-box; gap: 20px; padding: 20px;
         }
 
-        /* --- CONTENEDORES PRINCIPALES --- */
+        /* --- ESTRUCTURA --- */
         .main-content {
-            flex: 1;
-            overflow-y: auto; /* Scroll independiente en escritorio */
-            padding-right: 5px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            flex: 1; overflow-y: auto; padding-right: 5px; height: 100%;
+            display: flex; flex-direction: column;
         }
 
         .sidebar {
-            width: var(--sidebar-width);
-            background-color: #fff;
-            border: 1px solid var(--border-color);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            border-radius: 8px;
-            height: fit-content;
-            max-height: 95%;
-            overflow-y: auto;
-            flex-shrink: 0; /* Evita que se aplaste */
-        }
-
-        /* --- HEADER Y CONTROLES --- */
-        header { margin-bottom: 20px; flex-shrink: 0; }
-        h1 { color: var(--primary-color); margin: 0 0 10px 0; font-size: 1.8em; }
-        
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            width: var(--sidebar-width); background-color: #fff;
+            border: 1px solid var(--border-color); padding: 20px;
+            display: flex; flex-direction: column; border-radius: 8px;
+            height: fit-content; max-height: 95%; overflow-y: auto;
             flex-shrink: 0;
         }
 
+        /* --- HEADER & CONTROLS --- */
+        header { margin-bottom: 15px; flex-shrink: 0; }
+        h1 { color: var(--primary-color); margin: 0 0 5px 0; font-size: 1.6em; }
+        
+        .controls {
+            margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+        }
+
         button, .file-upload-btn {
-            padding: 10px 15px;
-            border: 1px solid var(--primary-color);
-            background: #fff;
-            color: var(--primary-color);
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9em;
+            padding: 8px 12px; border: 1px solid var(--primary-color);
+            background: #fff; color: var(--primary-color); border-radius: 6px;
+            cursor: pointer; font-weight: bold; display: inline-flex;
+            align-items: center; gap: 6px; font-size: 0.85em;
             touch-action: manipulation;
         }
-        
         button:hover, .file-upload-btn:hover { background-color: #f0f0f0; }
         button.primary { background-color: var(--primary-color); color: #fff; }
         button.danger { border-color: var(--danger-color); color: var(--danger-color); }
         #csvInput { display: none; }
 
-        /* --- ESTRUCTURA SEMANA --- */
+        /* --- SEMANA --- */
         .week-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            padding-bottom: 20px;
-            flex: 1; /* Ocupa el espacio restante */
+            display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 20px; flex: 1;
         }
 
         .day-column {
-            flex: 1;
-            min-width: 140px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 8px;
         }
 
         .day-header {
-            text-align: center;
-            font-weight: 800;
-            color: var(--primary-color);
-            background: #e9f5ec;
-            padding: 8px;
-            border-radius: 6px;
-            text-transform: uppercase;
-            font-size: 0.9em;
+            text-align: center; font-weight: 800; color: var(--primary-color);
+            background: #e9f5ec; padding: 6px; border-radius: 4px;
+            text-transform: uppercase; font-size: 0.85em;
         }
 
         /* --- SLOTS --- */
         .meal-slot-container {
-            background-color: var(--slot-bg);
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            min-height: 100px;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            transition: background 0.2s, border-color 0.2s;
+            background-color: var(--slot-bg); border: 2px dashed #ccc;
+            border-radius: 6px; min-height: 80px; padding: 6px;
+            display: flex; flex-direction: column; transition: all 0.2s;
             position: relative;
         }
-
         .meal-slot-container.drag-over {
-            background-color: #dcfce7;
-            border-color: var(--primary-color);
-            transform: scale(1.02);
+            background-color: #dcfce7; border-color: var(--primary-color); transform: scale(1.02);
         }
-
+        
         .slot-label {
-            font-size: 0.7em; color: #999; margin-bottom: 6px;
+            font-size: 0.65em; color: #999; margin-bottom: 4px;
             text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
-            display: flex; align-items: center; gap: 5px;
+            display: flex; align-items: center; gap: 4px;
         }
 
         .add-placeholder {
             flex: 1; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; color: #ddd; border-radius: 4px; min-height: 40px;
+            cursor: pointer; color: #ddd; border-radius: 4px; min-height: 30px;
         }
-        .add-placeholder i { font-size: 1.5em; }
+        .add-placeholder i { font-size: 1.2em; }
 
         /* --- CARDS --- */
         .meal-card {
-            background: #fff;
-            border: 1px solid #ddd;
+            background: #fff; border: 1px solid #ddd;
             border-left: 4px solid var(--primary-color);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-radius: 6px;
-            padding: 10px;
-            cursor: grab;
-            margin-bottom: 8px;
-            position: relative;
-            padding-right: 30px;
-            font-size: 0.95em;
-            touch-action: none; 
-            user-select: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 4px;
+            padding: 8px; cursor: grab; margin-bottom: 5px;
+            position: relative; padding-right: 25px; font-size: 0.9em;
+            touch-action: none; user-select: none; line-height: 1.2;
         }
-        
         .meal-card:active { cursor: grabbing; opacity: 0.7; }
         .meal-name { font-weight: 600; cursor: pointer; word-break: break-word; }
-
         .delete-card-btn {
-            position: absolute; top: 0; right: 0; width: 30px; height: 30px;
+            position: absolute; top: 0; right: 0; width: 25px; height: 25px;
             display: flex; align-items: center; justify-content: center;
             color: #ccc; cursor: pointer;
         }
@@ -178,16 +119,12 @@
 
         /* --- SIDEBAR --- */
         #sidebar-pantry-slot {
-            flex: 1;
-            overflow-y: auto;
-            background-color: #f8f8f8;
-            min-height: 150px;
+            flex: 1; overflow-y: auto; background-color: #f8f8f8; min-height: 100px;
         }
-        
         .add-pantry-btn {
-            margin-top: 10px; text-align: center; padding: 12px;
+            margin-top: 8px; text-align: center; padding: 10px;
             border: 2px dashed #aaa; color: #666; border-radius: 6px;
-            cursor: pointer; font-weight: bold;
+            cursor: pointer; font-weight: bold; font-size: 0.9em;
         }
 
         /* --- MODAL --- */
@@ -200,56 +137,64 @@
             background: #fff; padding: 20px; border-radius: 12px; width: 85%; max-width: 400px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        .modal-header { font-size: 1.3em; font-weight: bold; margin-bottom: 20px; color: var(--primary-color); }
+        .modal-header { font-size: 1.2em; font-weight: bold; margin-bottom: 15px; color: var(--primary-color); }
         .modal-input {
-            width: 100%; padding: 12px; font-size: 1.1em;
-            border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px;
+            width: 100%; padding: 10px; font-size: 1em;
+            border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px;
             box-sizing: border-box; -webkit-appearance: none;
         }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
         .modal-actions button { flex: 1; justify-content: center; }
 
-        /* --- MOVIL (MEDIA QUERY CORREGIDA) --- */
+
+        /* --- MÓVIL OPTIMIZADO (COMPACTO) --- */
         @media (max-width: 900px) {
             html, body {
-                height: auto; /* IMPORTANTE: Permitir crecimiento natural */
-                min-height: 100%;
-                overflow: visible; /* Dejar el scroll nativo del móvil */
-                overflow-x: hidden;
+                height: auto; min-height: 100%; overflow: visible; overflow-x: hidden;
             }
-
             body {
-                flex-direction: column;
-                padding: 10px;
-                display: block; /* Layout de bloque normal para móvil */
+                flex-direction: column; padding: 10px; display: block;
             }
-
             .main-content {
-                height: auto;
-                overflow: visible; 
-                display: block;
-                flex: none; /* No intentar ajustar tamaño flexible */
-                margin-bottom: 30px;
+                height: auto; overflow: visible; display: block; flex: none; margin-bottom: 20px;
             }
-
             .sidebar {
-                width: 100%;
-                border: none;
-                border-top: 4px solid #eee; /* Separador visual más claro */
-                padding: 20px 0 50px 0; /* Extra padding abajo */
-                max-height: none;
-                height: auto;
-                box-sizing: border-box;
-                background-color: #fdfdfd;
+                width: 100%; border: none; border-top: 4px solid #eee;
+                padding: 15px 0 40px 0; max-height: none; height: auto;
+                box-sizing: border-box; background-color: #fdfdfd;
+            }
+            .sidebar h3 { padding-left: 5px; margin-top: 0; }
+
+            /* --- LAYOUT DE REJILLA PARA MÓVIL (LADO A LADO) --- */
+            .week-container {
+                display: flex; flex-direction: column; gap: 8px; /* Menos espacio entre días */
             }
             
-            .sidebar h3 {
-                padding-left: 10px;
+            .day-column {
+                display: grid;
+                grid-template-columns: 1fr 1fr; /* 50% para comida, 50% para cena */
+                gap: 5px;
+                border: 1px solid #eee;
+                padding: 5px;
+                border-radius: 8px;
+                background: #fff;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.02);
             }
 
-            .week-container { flex-direction: column; }
-            .day-column { border: 1px solid #eee; padding: 10px; border-radius: 8px; background: #fff; }
-            .controls button, .controls label { flex: 1; justify-content: center; }
+            .day-header {
+                grid-column: span 2; /* El título ocupa todo el ancho */
+                margin-bottom: 0;
+                padding: 4px;
+                font-size: 0.8em;
+            }
+
+            /* Hacemos las cajas más bajitas */
+            .meal-slot-container {
+                min-height: 60px; /* Altura reducida */
+            }
+
+            .slot-label { font-size: 0.6em; }
+            .controls button, .controls label { flex: 1; justify-content: center; padding: 8px; }
         }
         
     </style>
@@ -312,7 +257,7 @@
 
     <div class="sidebar">
         <h3><i class="fas fa-bookmark"></i> Reserva</h3>
-        <p style="margin:0 0 10px 0; color:#888; font-size:0.9em; padding-left:10px;">Arrastra aquí para guardar.</p>
+        <p style="margin:0 0 10px 0; color:#888; font-size:0.8em; padding-left:5px;">Arrastra aquí para guardar.</p>
         <div id="sidebar-pantry-slot" class="meal-slot-container"></div>
         <div class="add-pantry-btn" onclick="openModal(null, 'sidebar-pantry')">
             <i class="fas fa-plus"></i> Añadir Manual
@@ -336,12 +281,10 @@
         days.forEach(d => { appState.planner[`${d}-lunch`] = null; appState.planner[`${d}-dinner`] = null; });
 
         let currentContext = { mode: null, slotId: null, mealIndex: null, mealId: null };
-        const STORAGE_KEY = 'mealPlannerStateV8'; 
+        const STORAGE_KEY = 'mealPlannerStateV9'; 
 
         function init() {
-            loadState();
-            setupEventListeners();
-            renderView();
+            loadState(); setupEventListeners(); renderView();
             const modalInput = document.getElementById('modalInput');
             if(modalInput) modalInput.addEventListener('keyup', (e) => { if(e.key === 'Enter') saveFromModal(); });
         }
@@ -456,10 +399,7 @@
         function setupEventListeners() {
             document.getElementById('csvInput').addEventListener('change', handleCSVUpload);
             document.body.addEventListener('dragstart', handleDragStart);
-            
-            // AutoScroll Logic
             document.body.addEventListener('dragover', handleDragOver);
-            
             document.body.addEventListener('dragenter', handleDragEnter);
             document.body.addEventListener('dragleave', handleDragLeave);
             document.body.addEventListener('drop', handleDrop);
@@ -480,26 +420,16 @@
 
         function handleDragOver(e) { 
             if (e.target.closest('.meal-slot-container')) e.preventDefault(); 
-            const scrollThreshold = 80; 
-            const scrollSpeed = 15;
-            
+            const scrollThreshold = 80; const scrollSpeed = 15;
             if (window.innerWidth <= 900) {
-                // Scroll body/window en móvil
-                if (e.clientY < scrollThreshold) {
-                    window.scrollBy(0, -scrollSpeed);
-                } else if (e.clientY > window.innerHeight - scrollThreshold) {
-                    window.scrollBy(0, scrollSpeed);
-                }
+                if (e.clientY < scrollThreshold) window.scrollBy(0, -scrollSpeed);
+                else if (e.clientY > window.innerHeight - scrollThreshold) window.scrollBy(0, scrollSpeed);
             } else {
-                // Scroll main-content en escritorio
                 const mainContent = document.querySelector('.main-content');
                 const rect = mainContent.getBoundingClientRect();
                 if (e.clientX >= rect.left && e.clientX <= rect.right) {
-                    if (e.clientY < rect.top + scrollThreshold) {
-                        mainContent.scrollTop -= scrollSpeed;
-                    } else if (e.clientY > rect.bottom - scrollThreshold) {
-                        mainContent.scrollTop += scrollSpeed;
-                    }
+                    if (e.clientY < rect.top + scrollThreshold) mainContent.scrollTop -= scrollSpeed;
+                    else if (e.clientY > rect.bottom - scrollThreshold) mainContent.scrollTop += scrollSpeed;
                 }
             }
         }
@@ -508,19 +438,14 @@
             const slot = e.target.closest('.meal-slot-container');
             if (slot) { e.preventDefault(); slot.classList.add('drag-over'); }
         }
-        
         function handleDragLeave(e) {
             const slot = e.target.closest('.meal-slot-container');
             if (slot && !slot.contains(e.relatedTarget)) slot.classList.remove('drag-over');
         }
-
         function handleDrop(e) {
              const targetSlot = e.target.closest('.meal-slot-container');
-             if (!targetSlot) return;
-             e.preventDefault();
-             targetSlot.classList.remove('drag-over');
+             if (!targetSlot) return; e.preventDefault(); targetSlot.classList.remove('drag-over');
              if(draggedItem) draggedItem.style.opacity = '1';
-
              try {
                  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
                  const sourceSlotId = data.sourceSlot;
@@ -533,19 +458,13 @@
                     : appState.planner[sourceSlotId];
                  
                  if (!movingMeal) return;
-
-                 if (targetSlotId === 'sidebar-pantry') {
-                     appState.pantry.push(movingMeal);
-                 } else {
+                 if (targetSlotId === 'sidebar-pantry') appState.pantry.push(movingMeal);
+                 else {
                      if (appState.planner[targetSlotId]) appState.pantry.push(appState.planner[targetSlotId]);
                      appState.planner[targetSlotId] = movingMeal;
                  }
-
-                 if (sourceSlotId.startsWith('pantry')) {
-                     appState.pantry.splice(parseInt(sourceSlotId.split('-')[1]), 1);
-                 } else {
-                     appState.planner[sourceSlotId] = null;
-                 }
+                 if (sourceSlotId.startsWith('pantry')) appState.pantry.splice(parseInt(sourceSlotId.split('-')[1]), 1);
+                 else appState.planner[sourceSlotId] = null;
                  draggedItem = null; saveState();
              } catch(err) { console.error(err); }
         }
@@ -554,8 +473,7 @@
             const csvContent = `lun,comida,Ejemplo Espaguetis\nlun,cena,Ejemplo Ensalada\nreserva,,Pizza de Emergencia`;
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
-            link.download = "plantilla_menu.csv";
-            link.click();
+            link.download = "plantilla_menu.csv"; link.click();
         }
 
         function handleCSVUpload(event) {
@@ -567,8 +485,7 @@
         }
 
         function parseCSVAndFill(csvContent) {
-            const lines = csvContent.split('\n');
-            let addedCount = 0;
+            const lines = csvContent.split('\n'); let addedCount = 0;
             lines.forEach(line => {
                 if (!line.trim()) return;
                 const parts = line.split(',');
@@ -577,16 +494,14 @@
                 const type = parts[1].trim().toLowerCase();
                 const name = parts[2].trim();
                 const newMeal = { id: 'csv_' + Date.now() + Math.random().toString(36).substr(2, 5), name: name };
-                if (day === 'pantry' || day === 'reserva') {
-                    appState.pantry.push(newMeal); addedCount++;
-                } else {
+                if (day === 'pantry' || day === 'reserva') { appState.pantry.push(newMeal); addedCount++; } 
+                else {
                     const dayMap = { 'lun': 'mon', 'mar': 'tue', 'mié': 'wed', 'mie': 'wed', 'jue': 'thu', 'vie': 'fri', 'sáb': 'sat', 'sab': 'sat', 'dom': 'sun' };
                     const typeMap = { 'comida': 'lunch', 'cena': 'dinner' };
                     const slotId = `${dayMap[day] || day}-${typeMap[type] || type}`;
                     if (appState.planner.hasOwnProperty(slotId)) {
                         if(appState.planner[slotId]) appState.pantry.push(appState.planner[slotId]);
-                        appState.planner[slotId] = newMeal;
-                        addedCount++;
+                        appState.planner[slotId] = newMeal; addedCount++;
                     }
                 }
             });
