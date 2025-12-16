@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador V7 - AutoScroll</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Planificador V8 - Estable</title>
     <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
     
     <style>
@@ -17,10 +17,11 @@
             --danger-color: #d9534f;
         }
 
+        /* --- CONFIGURACIÓN BASE (ESCRITORIO) --- */
         html, body {
-            height: 100%;
+            height: 100%; /* Fijo en escritorio para tener scroll interno */
             margin: 0;
-            overflow: hidden; /* Evita doble scroll bar */
+            overflow: hidden; 
         }
 
         body {
@@ -36,9 +37,11 @@
         /* --- CONTENEDORES PRINCIPALES --- */
         .main-content {
             flex: 1;
-            overflow-y: auto; /* Scroll independiente para desktop */
+            overflow-y: auto; /* Scroll independiente en escritorio */
             padding-right: 5px;
             height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar {
@@ -52,10 +55,11 @@
             height: fit-content;
             max-height: 95%;
             overflow-y: auto;
+            flex-shrink: 0; /* Evita que se aplaste */
         }
 
-        /* --- Header y Controles --- */
-        header { margin-bottom: 20px; }
+        /* --- HEADER Y CONTROLES --- */
+        header { margin-bottom: 20px; flex-shrink: 0; }
         h1 { color: var(--primary-color); margin: 0 0 10px 0; font-size: 1.8em; }
         
         .controls {
@@ -63,6 +67,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
 
         button, .file-upload-btn {
@@ -85,12 +90,13 @@
         button.danger { border-color: var(--danger-color); color: var(--danger-color); }
         #csvInput { display: none; }
 
-        /* --- ESTRUCTURA --- */
+        /* --- ESTRUCTURA SEMANA --- */
         .week-container {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
-            padding-bottom: 50px; /* Espacio extra abajo */
+            padding-bottom: 20px;
+            flex: 1; /* Ocupa el espacio restante */
         }
 
         .day-column {
@@ -203,27 +209,42 @@
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
         .modal-actions button { flex: 1; justify-content: center; }
 
-        /* --- MOVIL (MEDIA QUERY) --- */
+        /* --- MOVIL (MEDIA QUERY CORREGIDA) --- */
         @media (max-width: 900px) {
+            html, body {
+                height: auto; /* IMPORTANTE: Permitir crecimiento natural */
+                min-height: 100%;
+                overflow: visible; /* Dejar el scroll nativo del móvil */
+                overflow-x: hidden;
+            }
+
             body {
                 flex-direction: column;
                 padding: 10px;
-                overflow-y: auto; /* Body scrolleable en móvil */
+                display: block; /* Layout de bloque normal para móvil */
             }
-            html { overflow-y: auto; }
 
             .main-content {
                 height: auto;
-                overflow: visible; /* El scroll lo maneja el body */
+                overflow: visible; 
+                display: block;
+                flex: none; /* No intentar ajustar tamaño flexible */
+                margin-bottom: 30px;
             }
 
             .sidebar {
                 width: 100%;
                 border: none;
-                border-top: 2px solid #eee;
-                order: 2;
-                padding: 10px 0;
+                border-top: 4px solid #eee; /* Separador visual más claro */
+                padding: 20px 0 50px 0; /* Extra padding abajo */
                 max-height: none;
+                height: auto;
+                box-sizing: border-box;
+                background-color: #fdfdfd;
+            }
+            
+            .sidebar h3 {
+                padding-left: 10px;
             }
 
             .week-container { flex-direction: column; }
@@ -291,7 +312,7 @@
 
     <div class="sidebar">
         <h3><i class="fas fa-bookmark"></i> Reserva</h3>
-        <p style="margin:0 0 10px 0; color:#888; font-size:0.9em;">Arrastra aquí para guardar.</p>
+        <p style="margin:0 0 10px 0; color:#888; font-size:0.9em; padding-left:10px;">Arrastra aquí para guardar.</p>
         <div id="sidebar-pantry-slot" class="meal-slot-container"></div>
         <div class="add-pantry-btn" onclick="openModal(null, 'sidebar-pantry')">
             <i class="fas fa-plus"></i> Añadir Manual
@@ -315,7 +336,7 @@
         days.forEach(d => { appState.planner[`${d}-lunch`] = null; appState.planner[`${d}-dinner`] = null; });
 
         let currentContext = { mode: null, slotId: null, mealIndex: null, mealId: null };
-        const STORAGE_KEY = 'mealPlannerStateV7'; 
+        const STORAGE_KEY = 'mealPlannerStateV8'; 
 
         function init() {
             loadState();
@@ -436,7 +457,7 @@
             document.getElementById('csvInput').addEventListener('change', handleCSVUpload);
             document.body.addEventListener('dragstart', handleDragStart);
             
-            // ATENCIÓN: handleDragOver contiene la lógica de AutoScroll
+            // AutoScroll Logic
             document.body.addEventListener('dragover', handleDragOver);
             
             document.body.addEventListener('dragenter', handleDragEnter);
@@ -457,29 +478,22 @@
             setTimeout(() => draggedItem.style.opacity = '0.5', 0);
         }
 
-        // --- LÓGICA DE AUTO SCROLL ---
         function handleDragOver(e) { 
-            // 1. Permitir drop
             if (e.target.closest('.meal-slot-container')) e.preventDefault(); 
-
-            // 2. Configuración Scroll
-            const scrollThreshold = 80; // Zona sensible (px desde el borde)
-            const scrollSpeed = 15;     // Velocidad de scroll
-
-            // 3. Detectar si estamos en móvil o escritorio para saber qué scrollear
+            const scrollThreshold = 80; 
+            const scrollSpeed = 15;
+            
             if (window.innerWidth <= 900) {
-                // MÓVIL: Scrolleamos la ventana entera (window)
+                // Scroll body/window en móvil
                 if (e.clientY < scrollThreshold) {
-                    window.scrollBy(0, -scrollSpeed); // Scroll Arriba
+                    window.scrollBy(0, -scrollSpeed);
                 } else if (e.clientY > window.innerHeight - scrollThreshold) {
-                    window.scrollBy(0, scrollSpeed);  // Scroll Abajo
+                    window.scrollBy(0, scrollSpeed);
                 }
             } else {
-                // ESCRITORIO: Scrolleamos el div .main-content
+                // Scroll main-content en escritorio
                 const mainContent = document.querySelector('.main-content');
                 const rect = mainContent.getBoundingClientRect();
-                
-                // Solo si el ratón está dentro del área del contenido principal
                 if (e.clientX >= rect.left && e.clientX <= rect.right) {
                     if (e.clientY < rect.top + scrollThreshold) {
                         mainContent.scrollTop -= scrollSpeed;
