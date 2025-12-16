@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador Móvil v6</title>
+    <title>Planificador V7 - AutoScroll</title>
     <script src="https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"></script>
     
     <style>
@@ -17,24 +17,28 @@
             --danger-color: #d9534f;
         }
 
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* Evita doble scroll bar */
+        }
+
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
             color: #333;
             display: flex;
-            height: 100vh;
             box-sizing: border-box;
             gap: 20px;
+            padding: 20px;
         }
 
         /* --- CONTENEDORES PRINCIPALES --- */
         .main-content {
             flex: 1;
-            overflow-y: auto;
-            /* Scroll suave */
-            scrollbar-width: thin; 
+            overflow-y: auto; /* Scroll independiente para desktop */
+            padding-right: 5px;
+            height: 100%;
         }
 
         .sidebar {
@@ -46,7 +50,8 @@
             flex-direction: column;
             border-radius: 8px;
             height: fit-content;
-            max-height: 100%;
+            max-height: 95%;
+            overflow-y: auto;
         }
 
         /* --- Header y Controles --- */
@@ -61,7 +66,7 @@
         }
 
         button, .file-upload-btn {
-            padding: 10px 15px; /* Botones más grandes para dedos */
+            padding: 10px 15px;
             border: 1px solid var(--primary-color);
             background: #fff;
             color: var(--primary-color);
@@ -72,7 +77,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.9em;
-            touch-action: manipulation; /* Mejora respuesta táctil */
+            touch-action: manipulation;
         }
         
         button:hover, .file-upload-btn:hover { background-color: #f0f0f0; }
@@ -80,16 +85,17 @@
         button.danger { border-color: var(--danger-color); color: var(--danger-color); }
         #csvInput { display: none; }
 
-        /* --- ESTRUCTURA DE LA SEMANA (NUEVO DISEÑO FLEXIBLE) --- */
+        /* --- ESTRUCTURA --- */
         .week-container {
             display: flex;
-            flex-wrap: wrap; /* Permite que los días bajen si no caben */
+            flex-wrap: wrap;
             gap: 15px;
+            padding-bottom: 50px; /* Espacio extra abajo */
         }
 
         .day-column {
             flex: 1;
-            min-width: 140px; /* Ancho mínimo para que no se aplaste */
+            min-width: 140px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -106,7 +112,7 @@
             font-size: 0.9em;
         }
 
-        /* --- SLOTS (Huecos) --- */
+        /* --- SLOTS --- */
         .meal-slot-container {
             background-color: var(--slot-bg);
             border: 2px dashed #ccc;
@@ -122,7 +128,7 @@
         .meal-slot-container.drag-over {
             background-color: #dcfce7;
             border-color: var(--primary-color);
-            transform: scale(1.02); /* Pequeño efecto pop */
+            transform: scale(1.02);
         }
 
         .slot-label {
@@ -131,20 +137,13 @@
             display: flex; align-items: center; gap: 5px;
         }
 
-        /* --- BOTÓN AÑADIR (+) --- */
         .add-placeholder {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #ddd;
-            border-radius: 4px;
-            min-height: 40px;
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: #ddd; border-radius: 4px; min-height: 40px;
         }
         .add-placeholder i { font-size: 1.5em; }
 
-        /* --- TARJETA DE COMIDA --- */
+        /* --- CARDS --- */
         .meal-card {
             background: #fff;
             border: 1px solid #ddd;
@@ -155,18 +154,17 @@
             cursor: grab;
             margin-bottom: 8px;
             position: relative;
-            padding-right: 30px; /* Más espacio para dedo */
+            padding-right: 30px;
             font-size: 0.95em;
-            touch-action: none; /* Importante para el DragDropTouch */
+            touch-action: none; 
+            user-select: none;
         }
         
         .meal-card:active { cursor: grabbing; opacity: 0.7; }
         .meal-name { font-weight: 600; cursor: pointer; word-break: break-word; }
 
         .delete-card-btn {
-            position: absolute;
-            top: 0; right: 0;
-            width: 30px; height: 30px;
+            position: absolute; top: 0; right: 0; width: 30px; height: 30px;
             display: flex; align-items: center; justify-content: center;
             color: #ccc; cursor: pointer;
         }
@@ -178,93 +176,59 @@
             overflow-y: auto;
             background-color: #f8f8f8;
             min-height: 150px;
-            max-height: 50vh; /* Límite de altura en sidebar */
         }
         
         .add-pantry-btn {
-            margin-top: 10px;
-            text-align: center;
-            padding: 12px;
-            border: 2px dashed #aaa;
-            color: #666;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
+            margin-top: 10px; text-align: center; padding: 12px;
+            border: 2px dashed #aaa; color: #666; border-radius: 6px;
+            cursor: pointer; font-weight: bold;
         }
 
         /* --- MODAL --- */
         .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(3px);
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            align-items: center; justify-content: center; backdrop-filter: blur(3px);
         }
-
         .modal-box {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            width: 85%;
-            max-width: 400px;
+            background: #fff; padding: 20px; border-radius: 12px; width: 85%; max-width: 400px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            animation: slideUp 0.3s ease;
         }
-
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }}
-
         .modal-header { font-size: 1.3em; font-weight: bold; margin-bottom: 20px; color: var(--primary-color); }
-        
         .modal-input {
             width: 100%; padding: 12px; font-size: 1.1em;
             border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px;
-            box-sizing: border-box;
-             -webkit-appearance: none; /* Quita estilos feos en iOS */
+            box-sizing: border-box; -webkit-appearance: none;
         }
-        .modal-input:focus { border-color: var(--primary-color); outline: none; }
-
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
         .modal-actions button { flex: 1; justify-content: center; }
 
-        /* --- ESTILOS MÓVILES (MEDIA QUERIES) --- */
+        /* --- MOVIL (MEDIA QUERY) --- */
         @media (max-width: 900px) {
             body {
-                flex-direction: column; /* Apilar Main y Sidebar */
-                height: auto; /* Permitir scroll en toda la página */
+                flex-direction: column;
                 padding: 10px;
+                overflow-y: auto; /* Body scrolleable en móvil */
+            }
+            html { overflow-y: auto; }
+
+            .main-content {
+                height: auto;
+                overflow: visible; /* El scroll lo maneja el body */
             }
 
             .sidebar {
-                width: 100%; /* Sidebar ocupa todo el ancho */
+                width: 100%;
                 border: none;
                 border-top: 2px solid #eee;
-                order: 2; /* Poner la sidebar al final */
+                order: 2;
                 padding: 10px 0;
+                max-height: none;
             }
 
-            .main-content {
-                overflow: visible; /* Quitar scroll interno */
-            }
-
-            .week-container {
-                flex-direction: column; /* Días uno debajo de otro */
-            }
-            
-            .day-column {
-                border: 1px solid #eee;
-                padding: 10px;
-                border-radius: 8px;
-                background: #fff;
-            }
-
-            /* Hacer los botones de control más fáciles de pulsar */
-            .controls button, .controls label {
-                flex: 1;
-                justify-content: center;
-            }
+            .week-container { flex-direction: column; }
+            .day-column { border: 1px solid #eee; padding: 10px; border-radius: 8px; background: #fff; }
+            .controls button, .controls label { flex: 1; justify-content: center; }
         }
         
     </style>
@@ -289,72 +253,38 @@
         <div class="week-container">
             <div class="day-column">
                 <div class="day-header">Lunes</div>
-                <div class="meal-slot-container" id="mon-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="mon-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="mon-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="mon-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
-
             <div class="day-column">
                 <div class="day-header">Martes</div>
-                <div class="meal-slot-container" id="tue-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="tue-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="tue-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="tue-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
-
             <div class="day-column">
                 <div class="day-header">Miércoles</div>
-                <div class="meal-slot-container" id="wed-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="wed-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="wed-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="wed-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
-
             <div class="day-column">
                 <div class="day-header">Jueves</div>
-                <div class="meal-slot-container" id="thu-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="thu-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="thu-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="thu-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
-
              <div class="day-column">
                 <div class="day-header">Viernes</div>
-                <div class="meal-slot-container" id="fri-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="fri-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="fri-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="fri-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
-
             <div class="day-column">
                 <div class="day-header">Sábado</div>
-                <div class="meal-slot-container" id="sat-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="sat-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="sat-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="sat-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
-
             <div class="day-column">
                 <div class="day-header">Domingo</div>
-                <div class="meal-slot-container" id="sun-lunch">
-                    <div class="slot-label"><i class="fas fa-sun"></i> Comida</div>
-                </div>
-                <div class="meal-slot-container" id="sun-dinner">
-                    <div class="slot-label"><i class="fas fa-moon"></i> Cena</div>
-                </div>
+                <div class="meal-slot-container" id="sun-lunch"><div class="slot-label"><i class="fas fa-sun"></i> Comida</div></div>
+                <div class="meal-slot-container" id="sun-dinner"><div class="slot-label"><i class="fas fa-moon"></i> Cena</div></div>
             </div>
         </div>
     </div>
@@ -362,8 +292,7 @@
     <div class="sidebar">
         <h3><i class="fas fa-bookmark"></i> Reserva</h3>
         <p style="margin:0 0 10px 0; color:#888; font-size:0.9em;">Arrastra aquí para guardar.</p>
-        <div id="sidebar-pantry-slot" class="meal-slot-container">
-            </div>
+        <div id="sidebar-pantry-slot" class="meal-slot-container"></div>
         <div class="add-pantry-btn" onclick="openModal(null, 'sidebar-pantry')">
             <i class="fas fa-plus"></i> Añadir Manual
         </div>
@@ -381,28 +310,19 @@
     </div>
 
     <script>
-        // --- ESTADO GLOBAL ---
-        let appState = {
-            planner: {},
-            pantry: []
-        };
+        let appState = { planner: {}, pantry: [] };
         const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-        days.forEach(d => {
-            appState.planner[`${d}-lunch`] = null;
-            appState.planner[`${d}-dinner`] = null;
-        });
+        days.forEach(d => { appState.planner[`${d}-lunch`] = null; appState.planner[`${d}-dinner`] = null; });
 
         let currentContext = { mode: null, slotId: null, mealIndex: null, mealId: null };
-        const STORAGE_KEY = 'mealPlannerStateV6'; 
+        const STORAGE_KEY = 'mealPlannerStateV7'; 
 
         function init() {
             loadState();
             setupEventListeners();
             renderView();
             const modalInput = document.getElementById('modalInput');
-            if(modalInput) {
-                modalInput.addEventListener('keyup', (e) => { if(e.key === 'Enter') saveFromModal(); });
-            }
+            if(modalInput) modalInput.addEventListener('keyup', (e) => { if(e.key === 'Enter') saveFromModal(); });
         }
 
         function loadState() {
@@ -415,22 +335,13 @@
                 } catch (e) { console.error(e); }
             }
         }
+        function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); renderView(); }
 
-        function saveState() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-            renderView();
-        }
-
-        // --- RENDERIZADO ---
         function renderView() {
-            // Limpieza selectiva
             document.querySelectorAll('.meal-card, .add-placeholder').forEach(el => el.remove());
-            
-            // 1. Calendario
             for (const slotId in appState.planner) {
                 const slotEl = document.getElementById(slotId);
                 if (!slotEl) continue;
-
                 const mealData = appState.planner[slotId];
                 if (mealData) {
                     slotEl.appendChild(createMealCardElement(mealData, slotId));
@@ -442,8 +353,6 @@
                     slotEl.appendChild(addBtn);
                 }
             }
-
-            // 2. Reserva
             const pantrySlot = document.getElementById('sidebar-pantry-slot');
             if (pantrySlot) {
                 appState.pantry.forEach((mealData, index) => {
@@ -457,56 +366,37 @@
             card.className = 'meal-card';
             card.setAttribute('draggable', 'true');
             card.dataset.sourceSlot = sourceSlotId;
-
             const nameEl = document.createElement('div');
             nameEl.className = 'meal-name';
             nameEl.textContent = mealData.name;
             nameEl.onclick = () => openModal(mealData, sourceSlotId);
             card.appendChild(nameEl);
-
             const deleteBtn = document.createElement('i');
             deleteBtn.className = 'fas fa-times delete-card-btn';
-            deleteBtn.onclick = (e) => {
-                e.stopPropagation();
-                deleteMeal(sourceSlotId);
-            };
+            deleteBtn.onclick = (e) => { e.stopPropagation(); deleteMeal(sourceSlotId); };
             card.appendChild(deleteBtn);
             return card;
         }
 
-        // --- MODAL ---
         function openModal(mealData, slotId) {
             const modal = document.getElementById('mealModal');
             const input = document.getElementById('modalInput');
             const title = document.getElementById('modalTitle');
-
             currentContext = { mode: null, slotId: slotId, mealIndex: null, mealId: null };
-
             if (mealData) {
-                currentContext.mode = 'edit';
-                title.textContent = "Editar";
-                input.value = mealData.name;
+                currentContext.mode = 'edit'; title.textContent = "Editar"; input.value = mealData.name;
             } else {
-                currentContext.mode = 'add';
-                title.textContent = "Añadir Plato";
-                input.value = '';
+                currentContext.mode = 'add'; title.textContent = "Añadir Plato"; input.value = '';
             }
-            
-            if (slotId && slotId.startsWith('pantry-')) {
-                 currentContext.mealIndex = parseInt(slotId.split('-')[1]);
-            }
-
-            modal.style.display = 'flex';
-            setTimeout(() => input.focus(), 100);
+            if (slotId && slotId.startsWith('pantry-')) currentContext.mealIndex = parseInt(slotId.split('-')[1]);
+            modal.style.display = 'flex'; setTimeout(() => input.focus(), 100);
         }
-
         function closeModal() { document.getElementById('mealModal').style.display = 'none'; }
 
         function saveFromModal() {
             const input = document.getElementById('modalInput');
             const newName = input.value.trim();
             if (!newName) return; 
-
             if (currentContext.mode === 'add') {
                 const newMeal = { id: 'm_' + Date.now(), name: newName };
                 if (currentContext.slotId === 'sidebar-pantry' || currentContext.slotId === 'sidebar-pantry-slot') {
@@ -522,11 +412,9 @@
                     if(appState.planner[currentContext.slotId]) appState.planner[currentContext.slotId].name = newName;
                 }
             }
-            saveState();
-            closeModal();
+            saveState(); closeModal();
         }
 
-        // --- GESTIÓN DATOS ---
         function deleteMeal(sourceSlotId) {
             if(!confirm("¿Borrar?")) return;
             if (sourceSlotId.startsWith('pantry')) {
@@ -539,24 +427,21 @@
 
         function clearWeek() {
             if(confirm("¿Borrar todo el menú de la semana?")) {
-                 for (let slotId in appState.planner) {
-                    appState.planner[slotId] = null;
-                }
+                 for (let slotId in appState.planner) appState.planner[slotId] = null;
                 saveState();
             }
         }
 
-        // --- DRAG & DROP (HTML5 + Polyfill) ---
         function setupEventListeners() {
             document.getElementById('csvInput').addEventListener('change', handleCSVUpload);
-            // Listeners estándar (el polyfill los traduce a touch automáticamente)
             document.body.addEventListener('dragstart', handleDragStart);
+            
+            // ATENCIÓN: handleDragOver contiene la lógica de AutoScroll
             document.body.addEventListener('dragover', handleDragOver);
+            
             document.body.addEventListener('dragenter', handleDragEnter);
             document.body.addEventListener('dragleave', handleDragLeave);
             document.body.addEventListener('drop', handleDrop);
-            
-            // Cerrar modal al tocar fuera
             document.getElementById('mealModal').addEventListener('click', (e) => {
                if(e.target.id === 'mealModal') closeModal(); 
             });
@@ -572,7 +457,38 @@
             setTimeout(() => draggedItem.style.opacity = '0.5', 0);
         }
 
-        function handleDragOver(e) { if (e.target.closest('.meal-slot-container')) e.preventDefault(); }
+        // --- LÓGICA DE AUTO SCROLL ---
+        function handleDragOver(e) { 
+            // 1. Permitir drop
+            if (e.target.closest('.meal-slot-container')) e.preventDefault(); 
+
+            // 2. Configuración Scroll
+            const scrollThreshold = 80; // Zona sensible (px desde el borde)
+            const scrollSpeed = 15;     // Velocidad de scroll
+
+            // 3. Detectar si estamos en móvil o escritorio para saber qué scrollear
+            if (window.innerWidth <= 900) {
+                // MÓVIL: Scrolleamos la ventana entera (window)
+                if (e.clientY < scrollThreshold) {
+                    window.scrollBy(0, -scrollSpeed); // Scroll Arriba
+                } else if (e.clientY > window.innerHeight - scrollThreshold) {
+                    window.scrollBy(0, scrollSpeed);  // Scroll Abajo
+                }
+            } else {
+                // ESCRITORIO: Scrolleamos el div .main-content
+                const mainContent = document.querySelector('.main-content');
+                const rect = mainContent.getBoundingClientRect();
+                
+                // Solo si el ratón está dentro del área del contenido principal
+                if (e.clientX >= rect.left && e.clientX <= rect.right) {
+                    if (e.clientY < rect.top + scrollThreshold) {
+                        mainContent.scrollTop -= scrollSpeed;
+                    } else if (e.clientY > rect.bottom - scrollThreshold) {
+                        mainContent.scrollTop += scrollSpeed;
+                    }
+                }
+            }
+        }
         
         function handleDragEnter(e) { 
             const slot = e.target.closest('.meal-slot-container');
@@ -596,7 +512,6 @@
                  const sourceSlotId = data.sourceSlot;
                  let targetSlotId = targetSlot.id;
                  if (targetSlotId === 'sidebar-pantry-slot') targetSlotId = 'sidebar-pantry';
-
                  if (sourceSlotId === targetSlotId) return;
 
                  let movingMeal = sourceSlotId.startsWith('pantry') 
@@ -617,13 +532,10 @@
                  } else {
                      appState.planner[sourceSlotId] = null;
                  }
-                 
-                 draggedItem = null;
-                 saveState();
+                 draggedItem = null; saveState();
              } catch(err) { console.error(err); }
         }
 
-        // --- CSV ---
         function downloadTemplate() {
             const csvContent = `lun,comida,Ejemplo Espaguetis\nlun,cena,Ejemplo Ensalada\nreserva,,Pizza de Emergencia`;
             const link = document.createElement("a");
@@ -651,7 +563,6 @@
                 const type = parts[1].trim().toLowerCase();
                 const name = parts[2].trim();
                 const newMeal = { id: 'csv_' + Date.now() + Math.random().toString(36).substr(2, 5), name: name };
-
                 if (day === 'pantry' || day === 'reserva') {
                     appState.pantry.push(newMeal); addedCount++;
                 } else {
@@ -667,7 +578,6 @@
             });
             if (addedCount > 0) { alert(`Importados ${addedCount} platos.`); saveState(); }
         }
-
         init();
     </script>
 </body>
